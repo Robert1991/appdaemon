@@ -10,8 +10,12 @@ class TimeBasedSceneSwitch(hass.Hass):
         self.listen_state(self.refresh_listeners,
                           self.args["light_automatic_enabled"],
                           new="on")
-        self.listen_event(self.refresh_listeners,
+        self.listen_event(self.refresh_listeners_on_event,
                           "homeassistant_start")
+        self.refresh_listeners(None, None, None, None , None)
+
+    def refresh_listeners_on_event(self, entity, attribute, old):
+        self.refresh_listeners(entity, attribute, old, None, None)
 
     def refresh_listeners(self, entity, attribute, old, new, kwargs):
         self.log("Received change event from: " + str(entity))
