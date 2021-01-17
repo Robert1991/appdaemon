@@ -1,16 +1,15 @@
----
-secrets: /config/secrets.yaml
 appdaemon:
-  latitude: 52.379189
-  longitude: 4.899431
-  elevation: 2
-  time_zone: Europe/Amsterdam
+  latitude: !secret latitude
+  longitude: !secret longitude
+  elevation: 117.0
+  time_zone: CET
   plugins:
     HASS:
       type: hass
-
+      ha_url: !secret ha_url
+      token: !secret ha_token
 http:
-  url: http://127.0.0.1:5050
+  url: !secret dash_board_url
 admin:
 api:
 hadashboard:
