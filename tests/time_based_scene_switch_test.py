@@ -15,6 +15,7 @@ def scene_switch(given_that):
         .is_set_to('input_select.some_scene_toggle_input_select')
     given_that.passed_arg('light_automatic_enabled') \
         .is_set_to('input_boolean.some_light_automatic_switch')
+    TimeBasedSceneSwitch.initialize_on_creation = False
 
 
 def test_refresh_listeners_check_that_scene_switch_timer_are_set_check_current_scene_activated(given_that, scene_switch, assert_that, time_travel):

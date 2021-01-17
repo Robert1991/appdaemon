@@ -5,6 +5,7 @@ from dateutil import parser
 class TimeBasedSceneSwitch(hass.Hass):
     running_timers = []
     observed_listeners = []
+    initialize_on_creation = True
 
     def initialize(self):
         self.listen_state(self.refresh_listeners,
@@ -12,7 +13,8 @@ class TimeBasedSceneSwitch(hass.Hass):
                           new="on")
         self.listen_event(self.refresh_listeners_on_event,
                           "homeassistant_start")
-        self.refresh_listeners(None, None, None, None , None)
+        if self.initialize_on_creation:
+            self.refresh_listeners(None, None, None, None, None)
 
     def refresh_listeners_on_event(self, entity, attribute, old):
         self.refresh_listeners(entity, attribute, old, None, None)
