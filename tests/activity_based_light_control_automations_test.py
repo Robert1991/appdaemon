@@ -19,6 +19,7 @@ def test_turn_on_lights_light_group_is_turned_on_when_off(activity_based_light_s
     activity_based_light_switch.turn_on_lights(None, None, None, None, None)
     assert_that('light.some_light_group').was.turned_on()
 
+
 def test_turn_on_lights_light_group_is_not_turned_on_when_on(activity_based_light_switch, given_that, assert_that):
     given_that.state_of('light.some_light_group').is_set_to('on')
     activity_based_light_switch.turn_on_lights(None, None, None, None, None)
@@ -125,6 +126,22 @@ def test_turn_on_lights_when_there_is_movement_and_sufficient_lights(given_that,
     given_that.state_of('binary_sensor.some_activity_sensor').is_set_to('on')
     given_that.state_of('light.some_light_group').is_set_to('off')
     given_that.state_of('input_number.some_threshold').is_set_to('40.0')
+    given_that.state_of('sensor.some_light_sensor').is_set_to('45.0')
+    given_that.state_of(
+        'input_select.some_scene_input_select').is_set_to('Relaxed Light')
+
+    with patch('appdaemon.plugins.hass.hassapi.Hass.now_is_between', side_effect=now_is_between_patched_return_true):
+        turn_on_lights.turn_on_lights(
+            'binary_sensor.some_activity_sensor', None, None, None, None)
+
+        assert_that('scene.some_room_relaxed_light').was_not.turned_on()
+
+
+def test_turn_on_lights_when_there_is_movement_and_sufficient_lights_sensor_state_equals_intensity(given_that, turn_on_lights, assert_that):
+    given_that.time_is(datetime.strptime("10:00", "%H:%M"))
+    given_that.state_of('binary_sensor.some_activity_sensor').is_set_to('on')
+    given_that.state_of('light.some_light_group').is_set_to('off')
+    given_that.state_of('input_number.some_threshold').is_set_to('45.0')
     given_that.state_of('sensor.some_light_sensor').is_set_to('45.0')
     given_that.state_of(
         'input_select.some_scene_input_select').is_set_to('Relaxed Light')

@@ -19,6 +19,8 @@ class TurnOffAutomation(hass.Hass):
                           self.args["observed_activity_sensor"], new="off")
         self.listen_state(self.stop_turn_off_lights_timer,
                           self.args["observed_activity_sensor"], new="on")
+        self.listen_state(self.stop_turn_off_lights_timer,
+                          self.args["light_group"], new="off")
 
     def start_turn_off_lights_timer(self, entity, attribute, old, new, kwargs):
         timeout = int(float(self.get_state(self.args["turn_off_timeout"])))
@@ -51,7 +53,7 @@ class TurnOnAutomation(hass.Hass):
                 "light_intensity_toggle_threshold")
             lights_are_on = self.read_state_from_input_arg(
                 "light_group") == "on"
-            if (light_sensor_state <= light_threshold and not lights_are_on):
+            if (light_sensor_state < light_threshold and not lights_are_on):
                 if self.read_state_from_input_arg("enable_automatic_scene_mode") == "on":
                     self.turn_on_current_scene()
                 else:
