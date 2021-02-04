@@ -7,7 +7,7 @@ class DimLights(hass.Hass):
         self.listen_state(self.toggle_event,
                           self.args["light_group"], new="on")
         self.listen_state(self.toggle_event,
-                          self.args["light_group"], attribute="brightness")
+                          self.args["light_sensor"])
         self.listen_state(self.toggle_event,
                           self.args["light_intensity_toggle_threshold"])
         self.listen_state(self.toggle_event,
@@ -21,10 +21,12 @@ class DimLights(hass.Hass):
         lights_in_group = self.get_state(
             self.args["light_group"], attribute="entity_id")
         turned_off_lights = set()
-        sleep(1)
         light_turn_out_boundary = self.read_state_as_float(
             self.args['light_turn_off_boundary_brightness'])
+        sleep(1)
         while self.read_light_sensor_state() > self.read_light_threshold() and len(turned_off_lights) < len(lights_in_group):
+            if self.get_state(self.args["constrain_input_boolean"]) == 'off':
+                break
             for light in lights_in_group:
                 if self.get_state(light) == "on":
                     new_light_brightness = self.calculate_new_light_brightness(
