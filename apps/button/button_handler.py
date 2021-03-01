@@ -73,24 +73,29 @@ class ButtonEventReceiver(hass.Hass):
     def execute_end_hold(self, entity, args, thread_info):
         self.log("end hold received")
         self.last_hold_up = not self.last_hold_up
-    
+
     def execute_hold_up(self):
         self.log("hold_up")
 
     def execute_hold_down(self):
         self.log("hold_down")
 
-class SmartLightButton(ButtonEventReceiver):
+
+class SmartLightButtonWithSceneToggle(ButtonEventReceiver):
     def execute_press(self, entity, args, thread_info):
         if self.get_state(self.args["light_group"]) == "off":
             self.turn_on(self.args["light_group"])
         else:
-            self.call_service("input_select/select_next", entity_id=self.args["scene_input_select"])
-            current_selected = self.get_state(self.args["scene_input_select"]).lower()
-            scene_entity = "scene." + self.args["scene_prefix"].lower() + "_" + current_selected.replace(" ", "_")
+            self.call_service("input_select/select_next",
+                              entity_id=self.args["scene_input_select"])
+            current_selected = self.get_state(
+                self.args["scene_input_select"]).lower()
+            scene_entity = "scene." + \
+                self.args["scene_prefix"].lower() + "_" + \
+                current_selected.replace(" ", "_")
             time.sleep(1)
             self.call_service("scene/turn_on", entity_id=scene_entity)
-    
+
     def execute_release(self, entity, args, thread_info):
         if self.get_state(self.args["light_group"]) == "off":
             self.turn_on(self.args["light_group"])
@@ -98,18 +103,21 @@ class SmartLightButton(ButtonEventReceiver):
             self.turn_off(self.args["light_group"])
 
 
-class SmartLightButtonWithDimFunction(SmartLightButton):
+class SmartLightButtonWithDimFunction(SmartLightButtonWithSceneToggle):
     def execute_hold_up(self):
         current_light_group_brightness = self.get_current_light_group_brightness()
-        new_brightness = current_light_group_brightness + self.args["light_change_step_size"]
+        new_brightness = current_light_group_brightness + \
+            self.args["light_change_step_size"]
         if new_brightness <= 255:
             self.turn_on(self.args["light_group"], brightness=new_brightness)
         else:
             self.turn_on(self.args["light_group"], brightness=255)
 
     def execute_hold_down(self):
+        self.log(self.args["light_change_step_size"])
         current_light_group_brightness = self.get_current_light_group_brightness()
-        new_brightness = current_light_group_brightness - self.args["light_change_step_size"]
+        new_brightness = current_light_group_brightness - \
+            self.args["light_change_step_size"]
         if new_brightness > 0:
             self.turn_on(self.args["light_group"], brightness=new_brightness)
         else:
@@ -117,3 +125,43 @@ class SmartLightButtonWithDimFunction(SmartLightButton):
 
     def get_current_light_group_brightness(self):
         return self.get_state(self.args["light_group"], attribute="brightness")
+
+
+class SmartLightButton(SmartLightButtonWithDimFunction):
+    hold_count = 0
+    was_turned_off = False
+
+    def execute_press(self, entity, args, thread_info):
+        self.hold_count = 0
+        if self.get_state(self.args["little_light_group"]) == "off":
+            brightness = int(
+                float(self.get_state(self.args["brightness_slider"])))
+            self.turn_on(self.args["little_light_group"],
+                         brightness=brightness)
+        else:
+            self.turn_off(self.args["little_light_group"])
+
+    def execute_hold(self, entity, args, thread_info):
+        self.hold_count = self.hold_count + 1
+        if self.hold_count == 1:
+            if self.get_state(self.args["light_group"]) == "on":
+                self.turn_off(self.args["light_group"])
+                self.was_turned_off = True
+            else:
+                self.turn_on(self.args["light_group"])
+                self.was_turned_off = False
+        else:
+            self.turn_on(self.args["light_group"])
+            super(SmartLightButton, self).execute_hold(None, None, None)
+
+    def execute_end_hold(self, entity, args, thread_info):
+        if self.hold_count == 1 and self.was_turned_off:
+            self.turn_off(self.args["toggled_input_boolean"])
+        else:
+            self.turn_on(self.args["toggled_input_boolean"])
+
+        self.hold_count = 0
+        super(SmartLightButton, self).execute_end_hold(None, None, None)
+
+    def execute_release(self, entity, args, thread_info):
+        pass

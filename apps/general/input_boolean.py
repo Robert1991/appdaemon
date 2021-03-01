@@ -3,6 +3,29 @@ import appdaemon.plugins.hass.hassapi as hass
 from dateutil import parser
 
 
+class DailyReactivationTimer(hass.Hass):
+    current_timer_handle = None
+
+    def initialize(self):
+        self.listen_state(self.start_timer,
+                          self.args["observed_input_datetime"])
+        self.listen_state(self.start_timer,
+                          self.args["observed_input_boolean"])
+
+    def start_timer(self, entity, attribute, old, new, kwargs):
+        time_string = self.get_state(self.args["observed_input_datetime"])
+        reactivation_time = parser.parse(time_string)
+        timer_callback = self.run_daily(self.reactivate_input_bool,
+                                        reactivation_time.time())
+        if self.current_timer_handle:
+            self.cancel_timer(self.current_timer_handle)
+        self.current_timer_handle = timer_callback
+
+    def reactivate_input_bool(self, kwargs):
+        self.log("Reactivated: " + str(self.args["observed_input_boolean"]))
+        self.turn_on(self.args["observed_input_boolean"])
+
+
 class ReactivationTimer(hass.Hass):
     current_timer_handle = None
 
