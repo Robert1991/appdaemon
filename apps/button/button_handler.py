@@ -1,11 +1,10 @@
 import appdaemon.plugins.hass.hassapi as hass
-
 import time
+
 
 class ButtonEventHub(hass.Hass):
     pressed_time_stamp = None
     released_time_stamp = None
-
     last_hold_time_stamp = None
 
     def initialize(self):
@@ -15,7 +14,7 @@ class ButtonEventHub(hass.Hass):
                           self.args["observed_button"], new="release")
         self.listen_state(self.hold_button_event,
                           self.args["observed_button"], new="hold")
-    
+
     def pressed_button_event(self, entity, attribute, old, new, kwargs):
         self.pressed_time_stamp = self.get_now_ts()
 
@@ -23,7 +22,7 @@ class ButtonEventHub(hass.Hass):
         self.released_time_stamp = self.get_now_ts()
 
         time_diff = self.released_time_stamp - self.pressed_time_stamp
-        
+
         if time_diff < self.args["button_press_timeout"]:
             self.fire_event_for_button("press")
         elif self.last_hold_time_stamp:
@@ -43,21 +42,26 @@ class ButtonEventHub(hass.Hass):
     def format_event_name(self, event_post_fix):
         return self.args["observed_button"] + "_" + event_post_fix
 
+
 class ButtonEventReceiver(hass.Hass):
     last_hold_up = True
 
     def initialize(self):
-        self.listen_event(self.execute_press, self.args["observed_button"] + "_press")
-        self.listen_event(self.execute_release, self.args["observed_button"] + "_release")
-        self.listen_event(self.execute_hold, self.args["observed_button"] + "_hold")
-        self.listen_event(self.execute_end_hold, self.args["observed_button"] + "_end_hold")
-        
+        self.listen_event(self.execute_press,
+                          self.args["observed_button"] + "_press")
+        self.listen_event(self.execute_release,
+                          self.args["observed_button"] + "_release")
+        self.listen_event(self.execute_hold,
+                          self.args["observed_button"] + "_hold")
+        self.listen_event(self.execute_end_hold,
+                          self.args["observed_button"] + "_end_hold")
+
     def execute_press(self, entity, args, thread_info):
         self.log("press received")
-    
+
     def execute_release(self, entity, args, thread_info):
         self.log("release received")
-    
+
     def execute_hold(self, entity, args, thread_info):
         self.log("hold received")
 
