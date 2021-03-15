@@ -6,14 +6,16 @@ class TimeBasedSceneSwitch(hass.Hass):
     running_timers = []
     observed_listeners = []
     initialize_on_creation = True
+    scene_utils = None
 
     def initialize(self):
-        self.listen_state(self.refresh_listeners,
-                          self.args["light_automatic_enabled"],
-                          new="on")
-        self.listen_event(self.refresh_listeners_on_event,
-                          "homeassistant_start")
         if self.initialize_on_creation:
+            self.scene_utils = self.get_app('scene_utils')
+            self.listen_state(self.refresh_listeners,
+                              self.args["light_automatic_enabled"],
+                              new="on")
+            self.listen_event(self.refresh_listeners_on_event,
+                              "homeassistant_start")
             self.refresh_listeners(None, None, None, None, None)
 
     def refresh_listeners_on_event(self, entity, attribute, old):
@@ -117,6 +119,10 @@ class TimeBasedSceneSwitch(hass.Hass):
                  input_args["scene"] + " in " + self.args["toggled_scene_input_select"])
         self.select_option(
             self.args["toggled_scene_input_select"], input_args["scene"])
+        if "light_group" in self.args:
+            if self.get_state(self.args["light_group"]) == "on":
+                self.scene_utils.turn_on_current_scene(
+                    self.args["scene_group_prefix"], self.args["toggled_scene_input_select"])
 
     def get_scene_start_time_entity(self, scene_start_time_tuple):
         if len(scene_start_time_tuple) == 2:
