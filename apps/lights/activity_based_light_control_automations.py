@@ -11,35 +11,19 @@ class ActivityBasedLightSwitch(hass.Hass):
             self.turn_on(self.args["light_group"])
 
 
-class TurnOffAutomation(hass.Hass):
-    current_timer = None
-
-    def initialize(self):
-        self.listen_state(self.start_turn_off_lights_timer,
-                          self.args["observed_activity_sensor"], new="off")
-        self.listen_state(self.stop_turn_off_lights_timer,
-                          self.args["observed_activity_sensor"], new="on")
-        self.listen_state(self.stop_turn_off_lights_timer,
-                          self.args["light_group"], new="off")
-
-    def start_turn_off_lights_timer(self, entity, attribute, old, new, kwargs):
-        timeout = int(float(self.get_state(self.args["turn_off_timeout"])))
-        self.current_timer = self.run_in(
-            self.turn_off_light_group, int(timeout))
-
-    def stop_turn_off_lights_timer(self, entity, attribute, old, new, kwargs):
-        self.cancel_timer(self.current_timer)
-
-    def turn_off_light_group(self, kwargs):
-        self.turn_off(self.args["light_group"])
-
-
 class TurnOnAutomation(hass.Hass):
+    scene_utils = None
+    hass_utils = None
+
     def initialize(self):
+        self.scene_utils = self.get_app('scene_utils')
+        self.hass_utils = self.get_app('hass_utils')
         self.listen_state(self.turn_on_lights,
                           self.args["observed_activity_sensor"], new="on")
 
     def turn_on_lights(self, entity, attribute, old, new, kwargs):
+        if self.read_state_from_input_arg("light_group") == "on":
+            return
         automation_start_time = self.read_state_from_input_arg(
             "light_automation_start_time")
         automation_end_time = self.read_state_from_input_arg(
@@ -47,33 +31,30 @@ class TurnOnAutomation(hass.Hass):
         time_dependend_control_disabled = self.read_state_from_input_arg(
             'enable_time_depended_automation_input') == 'off'
         if self.now_is_between(automation_start_time, automation_end_time) or time_dependend_control_disabled:
-            light_sensor_state = self.read_state_as_float_from_input_arg(
-                "light_sensor")
-            light_threshold = self.read_state_as_float_from_input_arg(
-                "light_intensity_toggle_threshold")
-            lights_are_on = self.read_state_from_input_arg(
-                "light_group") == "on"
-            if (light_sensor_state < light_threshold and not lights_are_on):
+            light_sensor_state = self.hass_utils.read_state_as_float_from(
+                self.args["light_sensor"])
+            light_threshold = self.hass_utils.read_state_as_float_from(
+                self.args["light_intensity_toggle_threshold"])
+            if light_sensor_state <= light_threshold:
                 if self.read_state_from_input_arg("enable_automatic_scene_mode") == "on":
-                    self.turn_on_current_scene()
+                    self.turn_on_scene(light_threshold, light_sensor_state)
                 else:
+                    self.log("Turning on light", level="DEBUG")
                     self.turn_on(self.args["light_group"])
+                self.fire_event("TURN_ON", entity=self.args["light_group"])
 
-    def turn_on_current_scene(self):
-        scene_prefix = self.args["scene_group_prefix"]
-        current_select_scene_display_name = self.read_state_from_input_arg(
-            "scene_input_select")
-        scene_entity_id = self.format_scene_name(
-            scene_prefix, current_select_scene_display_name)
-        self.turn_on(scene_entity_id)
-
-    def format_scene_name(self, scene_prefix, scene_friendly_post_fix):
-        scene_friendly_post_fix_cleaned = scene_friendly_post_fix.lower().replace(" ", "_")
-        scene_prefix_cleaned = scene_prefix.lower()
-        return "scene." + scene_prefix_cleaned + "_" + scene_friendly_post_fix_cleaned
-
-    def read_state_as_float_from_input_arg(self, input_arg):
-        return float(self.read_state_from_input_arg(input_arg))
+    def turn_on_scene(self, light_threshold, light_sensor_state):
+        self.log("Turning on scene", level="DEBUG")
+        self.scene_utils.turn_on_current_scene(
+            self.args["scene_group_prefix"], self.args["scene_input_select"])
 
     def read_state_from_input_arg(self, input_arg):
         return self.get_state(self.args[input_arg])
+
+
+class TurnOnAutomationWithSceneTransition(TurnOnAutomation):
+    def turn_on_scene(self, light_threshold, light_sensor_state):
+        ratio = (light_threshold - light_sensor_state) / light_threshold
+        self.log("Turning on scene with ratio: " + str(ratio), level="DEBUG")
+        self.scene_utils.turn_on_current_scene_with_transition(
+            self.args["scene_group_prefix"], self.args["scene_input_select"], ratio)
