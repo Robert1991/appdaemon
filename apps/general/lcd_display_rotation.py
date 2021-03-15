@@ -20,8 +20,11 @@ class LCDDisplayRotation(hass.Hass):
     def rotate_screen(self, args):
         next_for_display = self.args["displayed_entities"][self.current_display_index]
 
-        current_entity_state = float(
-            self.get_state(next_for_display["entity"]))
+        try:
+            current_entity_state = float(
+                self.get_state(next_for_display["entity"]))
+        except ValueError:
+            current_entity_state = "unknown"
 
         unit = next_for_display["unit"].replace("\\\\", "\\")
 
