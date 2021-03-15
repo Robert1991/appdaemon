@@ -13,6 +13,7 @@ def toggle_automation(given_that):
         .is_set_to('input_datetime.interval_end')
     given_that.passed_arg('toggled_entity')  \
         .is_set_to('switch.toggled_switch')
+    TimeBasedToggleAutomation.initialize_on_creation = False
 
 
 def test_initalize_timers_both_timer_activated_and_switch_not_turned_on_because_earlier_as_start_time(given_that, toggle_automation, assert_that, time_travel):
