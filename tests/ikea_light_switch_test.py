@@ -2,7 +2,7 @@ from apps.lights.ikea_light_switch import IkeaLightSwitch
 
 import pytest
 from appdaemontestframework import automation_fixture
-
+from mock import Mock
 
 @automation_fixture(IkeaLightSwitch)
 def light_switch(given_that):
@@ -16,7 +16,8 @@ def light_switch(given_that):
         'Prefix')
     given_that.passed_arg('dim_step_size').is_set_to(
         'input_number.some_dim_step_size_slider')
-
+    IkeaLightSwitch.initialize_on_creation = False
+    IkeaLightSwitch.scene_utils = Mock()
 
 def test_decrease_brightness_turns_on_light_group_when_off(light_switch, given_that, assert_that):
     given_that.state_of(
@@ -40,7 +41,9 @@ def test_decrease_brightness_only_turned_on_lights_get_dimmed(light_switch, give
     given_that.state_of(
         'light.some_light_without_brightness_toggle').is_set_to('on')
     given_that.state_of('light.some_turned_off_light').is_set_to('off')
+
     light_switch.decrease_brightness(None, None, None, None, None)
+
     assert_that('light.some_turned_on_light').was.turned_on(brightness=100)
     assert_that('light.some_light_without_brightness_toggle').was_not.turned_on()
     assert_that('light.some_turned_off_light').was_not.turned_on()
@@ -56,7 +59,9 @@ def test_decrease_brightness_turns_off_light_when_brightness_0(light_switch, giv
                                                    {'brightness': "12"})
     given_that.state_of('light.light_2').is_set_to('on',
                                                    {'brightness': "125"})
+
     light_switch.decrease_brightness(None, None, None, None, None)
+
     assert_that('light.light_1').was.turned_off()
     assert_that('light.light_2').was.turned_on(brightness=100)
 
@@ -73,7 +78,9 @@ def test_increase_brightness_only_turned_on_lights_get_dimmed(light_switch, give
     given_that.state_of(
         'light.some_light_without_brightness_toggle').is_set_to('on')
     given_that.state_of('light.some_turned_off_light').is_set_to('off')
+
     light_switch.increase_brightness(None, None, None, None, None)
+
     assert_that('light.some_turned_on_light').was.turned_on(brightness=150)
     assert_that('light.some_turned_off_light').was_not.turned_on()
     assert_that('light.some_light_without_brightness_toggle').was_not.turned_on()
@@ -89,7 +96,9 @@ def test_increase_brightness_only_increases_to_max_255(light_switch, given_that,
                                                    {'brightness': "250"})
     given_that.state_of('light.light_2').is_set_to('on',
                                                    {'brightness': "125"})
+
     light_switch.increase_brightness(None, None, None, None, None)
+
     assert_that('light.light_1').was.turned_on(brightness=255)
     assert_that('light.light_2').was.turned_on(brightness=150)
 
@@ -100,7 +109,9 @@ def test_increase_brightness_turns_on_light_group_when_off(light_switch, given_t
     given_that.state_of('light.some_controlled_lights').is_set_to('off',
                                                                   {'entity_id': ["light.light_1",
                                                                                  "light.light_2"]})
+
     light_switch.increase_brightness(None, None, None, None, None)
+
     assert_that('light.some_controlled_lights').was.turned_on()
 
 
@@ -119,11 +130,13 @@ def test_toggle_light_group_is_turned_off_when_on(light_switch, given_that, asse
 def test_switch_to_next_scene(light_switch, given_that, assert_that):
     given_that.state_of(
         'input_select.some_scene_input_select').is_set_to('Test 1')
+
     light_switch.switch_to_next_scene(None, None, None, None, None)
+
     assert_that('input_select/select_next') \
-        .was.called_with(entity_id='input_select.some_scene_input_select')
-    assert_that('scene/turn_on') \
-        .was.called_with(entity_id='scene.prefix_test_1')
+        .was.called_with(entity_id='input_select.some_scene_input_select')    
+    light_switch.scene_utils.turn_on_current_scene.assert_called_once_with(
+        "Prefix", "input_select.some_scene_input_select")
 
 
 def test_switch_to_previous_scene(light_switch, given_that, assert_that):
@@ -132,5 +145,5 @@ def test_switch_to_previous_scene(light_switch, given_that, assert_that):
     light_switch.switch_to_previous_scene(None, None, None, None, None)
     assert_that('input_select/select_previous') \
         .was.called_with(entity_id='input_select.some_scene_input_select')
-    assert_that('scene/turn_on') \
-        .was.called_with(entity_id='scene.prefix_test_1')
+    light_switch.scene_utils.turn_on_current_scene.assert_called_once_with(
+        "Prefix", "input_select.some_scene_input_select")
