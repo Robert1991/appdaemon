@@ -123,6 +123,11 @@ class TimeBasedSceneSwitch(hass.Hass):
             if self.get_state(self.args["light_group"]) == "on":
                 self.scene_utils.turn_on_current_scene(
                     self.args["scene_group_prefix"], self.args["toggled_scene_input_select"])
+        if "light_intensity_control" in self.args:
+            self.log("Setting scene light intensity using " +
+                     self.args["light_intensity_control"])
+            self.scene_utils.toggle_scene_brightness_to_room_light_control(
+                self.args["light_intensity_control"], self.args["scene_group_prefix"], input_args["scene"])
 
     def get_scene_start_time_entity(self, scene_start_time_tuple):
         if len(scene_start_time_tuple) == 2:
