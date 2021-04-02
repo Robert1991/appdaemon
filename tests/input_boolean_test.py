@@ -1,6 +1,5 @@
 from apps.general.input_boolean import ReactivationTimer
 
-import pytest
 from appdaemontestframework import automation_fixture
 
 

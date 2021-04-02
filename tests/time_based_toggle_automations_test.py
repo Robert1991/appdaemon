@@ -1,8 +1,51 @@
 from apps.general.time_based_toggle_automations import TimeBasedToggleAutomation
+from apps.general.time_based_toggle_automations import TurnOnOffInterval
+
 
 from datetime import time
 from mock import patch
 from appdaemontestframework import automation_fixture
+
+
+@automation_fixture(TurnOnOffInterval)
+def turn_on_off_interval(given_that):
+    given_that.passed_arg('toggled_entity')  \
+        .is_set_to('switch.toggled_entity')
+    given_that.passed_arg('on_interval_length')  \
+        .is_set_to('input_number.on_interval_length')
+    given_that.passed_arg('off_interval_length')  \
+        .is_set_to('input_number.off_interval_length')
+    given_that.state_of('input_number.on_interval_length')  \
+        .is_set_to('60', {'unit_of_measurement': 's'})
+    given_that.state_of('input_number.off_interval_length')  \
+        .is_set_to('120', {'unit_of_measurement': 's'})
+    TurnOnOffInterval.initialize_on_creation = False
+
+
+def test_initialize_timers_on_off_interval_without_time_restriction(turn_on_off_interval, given_that, assert_that, time_travel):
+    turn_on_off_interval.initalize_timers(None, None, None, None, None)
+    assert_that('switch.toggled_entity').was.turned_on()
+    given_that.mock_functions_are_cleared()
+    time_travel.fast_forward(61).seconds()
+    assert_that('switch.toggled_entity').was.turned_off()
+    time_travel.fast_forward(118).seconds()
+    given_that.mock_functions_are_cleared()
+    assert_that('switch.toggled_entity').was_not.turned_on()
+    time_travel.fast_forward(3).seconds()
+    assert_that('switch.toggled_entity').was.turned_on()
+
+
+def test_initialize_timers_without_time_restriction_timer_reinitialized_on_event(turn_on_off_interval, given_that, assert_that, time_travel):
+    turn_on_off_interval.initalize_timers(None, None, None, None, None)
+    assert_that('switch.toggled_entity').was.turned_on()
+    given_that.mock_functions_are_cleared()
+    time_travel.fast_forward(30).seconds()
+    turn_on_off_interval.initalize_timers(None, None, None, None, None)
+    time_travel.fast_forward(31).seconds()
+    assert_that('switch.toggled_entity').was_not.turned_off()
+    given_that.mock_functions_are_cleared()
+    time_travel.fast_forward(30).seconds()
+    assert_that('switch.toggled_entity').was.turned_off()
 
 
 @automation_fixture(TimeBasedToggleAutomation)
