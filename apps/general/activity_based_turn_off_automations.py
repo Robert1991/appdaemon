@@ -9,8 +9,6 @@ class TurnOffAutomation(hass.Hass):
                           self.args["observed_activity_sensor"], new="off")
         self.listen_state(self.stop_turn_off_timer,
                           self.args["observed_activity_sensor"], new="on")
-        self.listen_state(self.start_turn_off_timer,
-                          self.args["entity"], new="on")
         self.listen_state(self.stop_turn_off_timer,
                           self.args["entity"], new="off")
 
