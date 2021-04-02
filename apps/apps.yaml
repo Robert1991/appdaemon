@@ -5,3 +5,10 @@ hass_utils:
 scene_utils:
   module: scene_utils
   class: SceneUtils
+
+scene_creator:
+  module: light_scene_generation
+  class: LightSceneGeneration
+  homeassistant_base_dir: /conf/homeassistant/
+  input_select_base_dir: input/input_select
+  input_number_base_dir: input/input_number

@@ -176,7 +176,8 @@ class LightSceneGeneration(hass.Hass):
 
     def get_scene_input_select_options(self, light_scene_group, light_scene_array):
         light_scene_group_filter = \
-            re.compile(re.escape(light_scene_group), re.IGNORECASE)
+            re.compile(
+                re.escape(light_scene_group.replace("_", " ")), re.IGNORECASE)
         light_scene_names = []
         for light_scene in light_scene_array:
             light_scene_name = \
