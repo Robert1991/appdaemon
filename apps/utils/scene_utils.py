@@ -1,5 +1,4 @@
 import appdaemon.plugins.hass.hassapi as hass
-import time
 
 
 class SceneUtils(hass.Hass):
@@ -34,6 +33,11 @@ class SceneUtils(hass.Hass):
 
         if input_number_state:
             self.set_value(group_light_intensity_control, input_number_state)
+
+    def turn_on_current_scene_by_name(self, scene_prefix, scene_name):
+        scene_entity_id = self.format_scene_name(
+            scene_prefix, scene_name)
+        self.turn_on(scene_entity_id)
 
     def turn_on_current_scene(self, scene_prefix, scene_input_select):
         current_select_scene_display_name = self.get_state(
