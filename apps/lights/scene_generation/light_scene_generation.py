@@ -30,7 +30,7 @@ class LightSceneGeneration(hass.Hass):
             stored_light_scenes = self.read_existing_light_scenes(light_scene)
             new_light_scene_array = []
             for stored_light_scene in stored_light_scenes:
-                if light_scene.get_light_scene_name() != stored_light_scene["name"]:
+                if light_scene.get_scene_name_normalized() != stored_light_scene["name"].lower().replace(' ', '_'):
                     new_light_scene_array.append(stored_light_scene)
             self.write_yaml_dict_to_file(
                 light_scene_file_path, new_light_scene_array)
@@ -60,7 +60,7 @@ class LightSceneGeneration(hass.Hass):
 
             self.regenerate_scene_input_selects(
                 light_scene, stored_light_scenes, event_attributes)
-            if "light_intensity_control" in event_attributes:
+            if self.light_intensity_control_defined(event_attributes):
                 self.add_scence_light_intensity_to_input_numbers(light_scene)
 
     def update_scene(self, event_name, event_attributes, thread):
@@ -71,7 +71,8 @@ class LightSceneGeneration(hass.Hass):
 
             new_light_scene_array = []
             for stored_light_scene in stored_light_scenes:
-                if light_scene_name == stored_light_scene["name"]:
+                if light_scene_name.lower().replace(' ', '_')  \
+                        == stored_light_scene["name"].lower().replace(' ', '_'):
                     new_light_scene_array.append(light_scene.to_dict())
                 else:
                     new_light_scene_array.append(stored_light_scene)
@@ -81,7 +82,7 @@ class LightSceneGeneration(hass.Hass):
             self.write_yaml_dict_to_file(
                 light_scene_file_path, new_light_scene_array)
             self.call_service("scene/reload")
-            if "light_intensity_control" in event_attributes:
+            if self.light_intensity_control_defined(event_attributes):
                 self.update_scence_light_intensity_in_input_numbers(
                     light_scene)
 
@@ -90,13 +91,18 @@ class LightSceneGeneration(hass.Hass):
             event_attributes["light_group"], attribute="entity_id")
         light_states = []
         for light in lights_in_group:
-            light_states.append(self.get_state(light, attribute="all"))
-        if "light_intensity_control" in event_attributes:
+            light_state = self.get_state(light, attribute="all")
+            if light_state:
+                light_states.append(self.get_state(light, attribute="all"))
+        if self.light_intensity_control_defined(event_attributes):
             light_intensity_state = int(float(self.get_state(
                 event_attributes["light_intensity_control"])))
         else:
             light_intensity_state = None
         return LightSceneFactory.create_light_scene(event_attributes, light_states, light_intensity_state)
+
+    def light_intensity_control_defined(self, event_attributes):
+        return "light_intensity_control" in event_attributes and len(event_attributes["light_intensity_control"]) > 0
 
     def regenerate_scene_input_selects(self, new_light_scene, all_light_scenes, event_attributes):
         light_scene_options = self.get_scene_input_select_options(
@@ -223,7 +229,7 @@ class LightSceneFactory:
         light_states = []
         for light_state in light_raw_states:
             light_states.append(LightState.create_light_state(light_state))
-        if "light_intensity_control" in event_attributes:
+        if "light_intensity_control" in event_attributes and len(event_attributes["light_intensity_control"]) > 0:
             return LightSceneWithLightIntensityControl(event_attributes["scene_name"],
                                                        event_attributes["scene_group_prefix"],
                                                        light_states,

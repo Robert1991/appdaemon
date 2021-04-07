@@ -152,6 +152,7 @@ def test_update_scene(scene_generator, given_that, assert_that, time_travel):
                     event_attributes = {"scene_name": "To Be Updated",
                                         "scene_group_prefix": "Bedroom",
                                         "light_group": "light.group",
+                                        "light_intensity_control": "",
                                         "event_name":  "UPDATE_SCENE"}
                     scene_generator.delegate_scene_creator_event(
                         "SCENE_CREATOR", event_attributes, None)
