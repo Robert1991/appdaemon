@@ -31,9 +31,9 @@ class TurnOnAutomation(hass.Hass):
         time_dependend_control_disabled = self.read_state_from_input_arg(
             'enable_time_depended_automation_input') == 'off'
         if self.now_is_between(automation_start_time, automation_end_time) or time_dependend_control_disabled:
-            light_sensor_state = self.hass_utils.read_state_as_float_from(
+            light_sensor_state = self.hass_utils.read_state_as_float(
                 self.args["light_sensor"])
-            light_threshold = self.hass_utils.read_state_as_float_from(
+            light_threshold = self.hass_utils.read_state_as_float(
                 self.args["light_intensity_toggle_threshold"])
             if light_sensor_state <= light_threshold:
                 if self.read_state_from_input_arg("enable_automatic_scene_mode") == "on":

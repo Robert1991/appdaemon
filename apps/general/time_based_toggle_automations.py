@@ -1,5 +1,7 @@
 import appdaemon.plugins.hass.hassapi as hass
+import time
 from dateutil import parser
+
 
 
 class TurnOnOffInterval(hass.Hass):
@@ -14,8 +16,7 @@ class TurnOnOffInterval(hass.Hass):
                           self.args["on_interval_length"])
         self.listen_state(self.initalize_timers,
                           self.args["off_interval_length"])
-        self.listen_event(self.initalize_timers_on_event,
-                          "homeassistant_start")
+
         if "interval_start" in self.args and "interval_end" in self.args:
             self.listen_state(self.initalize_timers,
                               self.args["interval_start"])
@@ -63,13 +64,20 @@ class TurnOnOffInterval(hass.Hass):
 
     def turn_off_entity(self, input_args):
         self.log(self.args["toggled_entity"] + " was turned off")
-        self.turn_off(self.args["toggled_entity"])
+
+        if self.contraint_is_forfilled("off_constraint"):
+            self.turn_off(self.args["toggled_entity"])
+        else:
+            self.log("skipped turn off, because given condition wasn't met")
         self.start_next_timer(
             self.args["off_interval_length"], self.turn_on_entity)
 
     def turn_on_entity(self, input_args):
         self.log(self.args["toggled_entity"] + " was turned on")
-        self.turn_on(self.args["toggled_entity"])
+        if self.contraint_is_forfilled("on_constraint"):
+            self.turn_on(self.args["toggled_entity"])
+        else:
+            self.log("skipped turn on, because given condition wasn't met")
         self.start_next_timer(
             self.args["on_interval_length"], self.turn_off_entity)
 
@@ -114,6 +122,14 @@ class TurnOnOffInterval(hass.Hass):
         if timer_handle:
             self.cancel_timer(timer_handle)
 
+    def contraint_is_forfilled(self, constraint_name):
+        if constraint_name in self.args:
+            if self.get_state(self.args[constraint_name]["entity"]) \
+                    == self.args[constraint_name]["state"]:
+                return True
+            return False
+        return True
+
 
 class TimeBasedToggleAutomation(hass.Hass):
     turn_on_timer = None
@@ -126,8 +142,7 @@ class TimeBasedToggleAutomation(hass.Hass):
                           self.args["time_interval_start"])
         self.listen_state(self.initalize_timers,
                           self.args["time_interval_end"])
-        self.listen_event(self.initalize_timers_on_event,
-                          "homeassistant_start")
+
         if self.initialize_on_creation:
             self.initalize_timers(None, None, None, None, None)
 
@@ -182,7 +197,21 @@ class TimeBasedToggleAutomation(hass.Hass):
 
     def toggle(self, input_args):
         self.log("toggled to " + str(input_args["toState"]))
-        if input_args["toState"]:
-            self.turn_on(self.args["toggled_entity"])
-        else:
-            self.turn_off(self.args["toggled_entity"])
+        self.toggle_entity_with_retry_in_error_case(input_args["toState"])
+    
+    def toggle_entity_with_retry_in_error_case(self,turned_on):
+        current_error_count = 0
+        max_error_count = 5
+        while current_error_count < max_error_count:
+            try:
+                if turned_on:
+                    self.turn_on(self.args["toggled_entity"])
+                else:
+                    self.turn_off(self.args["toggled_entity"])
+                return
+            except:
+                self.log("received error when trying to toggle entity")
+                current_error_count = current_error_count + 1
+                time.sleep(1)
+                if current_error_count == max_error_count:
+                    raise
