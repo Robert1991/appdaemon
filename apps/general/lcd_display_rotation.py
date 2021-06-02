@@ -19,17 +19,12 @@ class LCDDisplayRotation(hass.Hass):
 
     def rotate_screen(self, args):
         next_for_display = self.args["displayed_entities"][self.current_display_index]
-
-        try:
-            current_entity_state = float(
-                self.get_state(next_for_display["entity"]))
-        except ValueError:
-            current_entity_state = "unknown"
-
-        unit = next_for_display["unit"].replace("\\\\", "\\")
-
+        
         display_message = next_for_display["name"] + \
-            ":\n" + str(current_entity_state) + " " + unit
+            ":\n" + self.get_state(next_for_display["entity"])
+        if next_for_display["unit"]:
+            unit = next_for_display["unit"].replace("\\\\", "\\")
+            display_message = display_message  + " " + unit
 
         self.call_service("mqtt/publish",
                           topic=self.args["mqtt_display"],
