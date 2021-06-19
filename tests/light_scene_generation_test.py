@@ -234,8 +234,8 @@ def assert_input_select_written(open_file_mock, yaml_dump_patch, assert_that, ex
 
 def test_light_scene_to_dict():
     firstLightState = LightState("light.foo", "on", [RGBColorState(
-        200, 100, 200), XYColorState(0.01, 0.15)], None)
-    secondLightState = LightState("light.foo2", "on", [], 25)
+        200, 100, 200), XYColorState(0.01, 0.15)], None, None)
+    secondLightState = LightState("light.foo2", "on", [], 25, 100)
 
     actual_scene_dict = LightScene("Test Scene", "Living Room", [
         firstLightState, secondLightState]).to_dict()
@@ -290,27 +290,32 @@ def test_light_state_create_light_state():
 
 
 def test_light_state_to_dict_value():
-    assert LightState("light.foo", "on", [RGBColorState(200, 100, 200), XYColorState(0.01, 0.15)], None).to_dict_value() \
+    assert LightState("light.foo", "on", [RGBColorState(200, 100, 200), XYColorState(0.01, 0.15)], None, None).to_dict_value() \
         == {"light.foo": {"state": "on", "rgb_color": [200, 100, 200], "xy_color": [0.01, 0.15]}}
 
 
 def test_light_state_to_dict_value_with_no_brightness():
-    assert LightState("light.foo", "on", [RGBColorState(200, 100, 200)], None).to_dict_value() \
+    assert LightState("light.foo", "on", [RGBColorState(200, 100, 200)], None, None).to_dict_value() \
         == {"light.foo": {"state": "on", "rgb_color": [200, 100, 200]}}
 
 
 def test_light_state_to_dict_value_with_brightness_and_empty_color_states():
-    assert LightState("light.foo", "on", [], 25).to_dict_value() == {
+    assert LightState("light.foo", "on", [], 25, None).to_dict_value() == {
         "light.foo": {"state": "on", "brightness": 25}}
 
 
+def test_light_state_to_dict_value_with_brightness_and_color_temp():
+    assert LightState("light.foo", "on", [], 25, 100).to_dict_value() == {
+        "light.foo": {"state": "on", "brightness": 25, "color_temp" : 100}}
+
+
 def test_light_state_to_dict_value_with_no_brightness_and_empty_color_states():
-    assert LightState("light.foo", "on", [], None).to_dict_value() == {
+    assert LightState("light.foo", "on", [], None, None).to_dict_value() == {
         "light.foo": {"state": "on"}}
 
 
 def test_light_state_to_dict_value_with_no_brightness_and_None_color_states():
-    assert LightState("light.foo", "on", None, None).to_dict_value() == {
+    assert LightState("light.foo", "on", None, None, None).to_dict_value() == {
         "light.foo": {"state": "on"}}
 
 

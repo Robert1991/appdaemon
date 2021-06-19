@@ -303,15 +303,19 @@ class LightState:
     state = ""
     color_states = []
     brightess = None
+    color_temp = None
 
     def create_light_state(light_state_attributes):
         entity_id = light_state_attributes["entity_id"]
         light_on_off_state = light_state_attributes["state"]
         color_states = LightState.read_color_states(light_state_attributes)
         brightness = None
+        color_temp = None
         if "brightness" in light_state_attributes["attributes"]:
             brightness = light_state_attributes["attributes"]["brightness"]
-        return LightState(entity_id, light_on_off_state, color_states, brightness)
+        if "color_temp" in light_state_attributes["attributes"]:
+            color_temp = light_state_attributes["attributes"]["color_temp"]
+        return LightState(entity_id, light_on_off_state, color_states, brightness, color_temp)
 
     def read_color_states(light_state):
         color_states = []
@@ -330,10 +334,11 @@ class LightState:
             color_states.append(XYColorState(x_value, y_value))
         return color_states
 
-    def __init__(self, entity_id, state, color_states, brightness):
+    def __init__(self, entity_id, state, color_states, brightness, color_temp):
         self.entity_id = entity_id
         self.state = state
         self.brightess = brightness
+        self.color_temp = color_temp
         if color_states:
             self.color_states = color_states
 
@@ -341,6 +346,8 @@ class LightState:
         dict_entry = {self.entity_id: {"state": self.state}}
         if self.brightess:
             dict_entry[self.entity_id].update({"brightness": self.brightess})
+        if self.color_temp:
+            dict_entry[self.entity_id].update({"color_temp": self.color_temp})
         for color in self.color_states:
             dict_entry[self.entity_id].update(color.to_dict_value())
         return dict_entry
