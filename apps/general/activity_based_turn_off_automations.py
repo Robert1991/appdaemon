@@ -29,6 +29,7 @@ class TurnOffAutomation(hass.Hass):
         entity = self.args["entity"]
         self.turn_off(entity)
         self.fire_event("TURN_OFF", entity=entity)
+        self.cancel_timer_if_running()
 
     def cancel_timer_if_running(self):
         if self.current_timer:

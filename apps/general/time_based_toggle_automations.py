@@ -3,7 +3,6 @@ import time
 from dateutil import parser
 
 
-
 class TurnOnOffInterval(hass.Hass):
     current_timer = None
     start_execution_timer = None
@@ -61,6 +60,8 @@ class TurnOnOffInterval(hass.Hass):
         self.log(self.args["toggled_entity"] +
                  ": OnOffInterval execution was cancelled")
         self.cancel_timer_if_running(self.current_timer)
+        self.cancel_timer_if_running(self.start_execution_timer)
+        self.cancel_timer_if_running(self.end_execution_timer)
 
     def turn_off_entity(self, input_args):
         self.log(self.args["toggled_entity"] + " was turned off")
@@ -119,7 +120,7 @@ class TurnOnOffInterval(hass.Hass):
         return parser.parse(time_as_str).time()
 
     def cancel_timer_if_running(self, timer_handle):
-        if timer_handle:
+        if timer_handle and self.timer_running(timer_handle):
             self.cancel_timer(timer_handle)
 
     def contraint_is_forfilled(self, constraint_name):
@@ -198,8 +199,8 @@ class TimeBasedToggleAutomation(hass.Hass):
     def toggle(self, input_args):
         self.log("toggled to " + str(input_args["toState"]))
         self.toggle_entity_with_retry_in_error_case(input_args["toState"])
-    
-    def toggle_entity_with_retry_in_error_case(self,turned_on):
+
+    def toggle_entity_with_retry_in_error_case(self, turned_on):
         current_error_count = 0
         max_error_count = 5
         while current_error_count < max_error_count:
