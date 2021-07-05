@@ -143,19 +143,19 @@ class SmartLightButton(SmartLightButtonWithDimFunction):
 
     def execute_hold(self, entity, args, thread_info):
         self.hold_count = self.hold_count + 1
-        if self.hold_count == 1:
+        if self.hold_count < 2:
             if self.get_state(self.args["light_group"]) == "on":
                 self.turn_off(self.args["light_group"])
                 self.was_turned_off = True
-            else:
-                self.turn_on(self.args["light_group"])
-                self.was_turned_off = False
         else:
             self.turn_on(self.args["light_group"])
+            self.was_turned_off = False
             super(SmartLightButton, self).execute_hold(None, None, None)
 
+
     def execute_end_hold(self, entity, args, thread_info):
-        if self.hold_count == 1 and self.was_turned_off:
+        if self.hold_count < 3 and self.was_turned_off:
+            self.log("Turned off: " + self.args["toggled_input_boolean"])
             self.turn_off(self.args["toggled_input_boolean"])
         else:
             self.turn_on(self.args["toggled_input_boolean"])
