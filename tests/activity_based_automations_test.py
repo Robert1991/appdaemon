@@ -1,4 +1,4 @@
-from apps.general.activity_based_automations import ActivityBasedLightControl
+from apps.general.activity_based_automations import ActivityBasedEntityControl
 from apps.general.activity_based_automations import TurnOffAutomation
 
 from appdaemontestframework import automation_fixture
@@ -50,13 +50,13 @@ def test_start_turn_off_entity_timer_not_turns_off_when_movement_occurs(given_th
         fire_event_mock.assert_not_called()
 
 
-@automation_fixture(ActivityBasedLightControl)
+@automation_fixture(ActivityBasedEntityControl)
 def activity_based_light_switch(given_that, hass_mocks):
     hass_mocks._mock_handlers.append(
         MockHandler(Hass, "get_app", side_effect=[Mock(), Mock()]))
     given_that.passed_arg('observed_activity_sensor').is_set_to(
         'binary_sensor.some_activity_sensor')
-    given_that.passed_arg('light_group').is_set_to(
+    given_that.passed_arg('entity').is_set_to(
         'light.some_light_group')
     hass_mocks._mock_handlers.append(
         MockHandler(Hass, "log"))
