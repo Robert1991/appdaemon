@@ -19,10 +19,46 @@ def turn_off_entity(given_that, hass_mocks):
     given_that.passed_arg('entity').is_set_to('light.some_light_group')
 
     given_that.state_of('input_number.some_turn_off_time_out') \
-        .is_set_to("179.0")
+        .is_set_to("179.0",  {"unit_of_measurement": "s"})
 
 
-def test_start_turn_off_entity_timer_turns_off_light_after_configured_input(given_that, turn_off_entity, assert_that, time_travel):
+def test_start_turn_off_entity_timer_turns_off_light_after_configured_input_with_hours(given_that, turn_off_entity, assert_that, time_travel):
+    with patch('appdaemon.plugins.hass.hassapi.Hass.fire_event') as fire_event_mock:
+        given_that.state_of('input_number.some_turn_off_time_out') \
+            .is_set_to("5",  {"unit_of_measurement": "h"})
+        turn_off_entity.start_turn_off_timer(
+            None, None, None, None, None)
+
+        time_travel.fast_forward(4 * 60).minutes()
+
+        assert_that('light.some_light_group').was_not.turned_off()
+
+        time_travel.fast_forward(6 * 60).minutes()
+
+        assert_that('light.some_light_group').was.turned_off()
+        fire_event_mock.assert_called_with(
+            "TURN_OFF", entity="light.some_light_group")
+
+
+def test_start_turn_off_entity_timer_turns_off_light_after_configured_input_with_minutes(given_that, turn_off_entity, assert_that, time_travel):
+    with patch('appdaemon.plugins.hass.hassapi.Hass.fire_event') as fire_event_mock:
+        given_that.state_of('input_number.some_turn_off_time_out') \
+            .is_set_to("5",  {"unit_of_measurement": "min"})
+        turn_off_entity.start_turn_off_timer(
+            None, None, None, None, None)
+
+        time_travel.fast_forward(4).minutes()
+
+        assert_that('light.some_light_group').was_not.turned_off()
+
+        time_travel.fast_forward(6).minutes()
+
+        assert_that('light.some_light_group').was.turned_off()
+        fire_event_mock.assert_called_with(
+            "TURN_OFF", entity="light.some_light_group")
+
+
+def test_start_turn_off_entity_timer_turns_off_light_after_configured_input_with_seconds(given_that, turn_off_entity, assert_that, time_travel):
     with patch('appdaemon.plugins.hass.hassapi.Hass.fire_event') as fire_event_mock:
         turn_off_entity.start_turn_off_timer(
             None, None, None, None, None)
@@ -79,9 +115,9 @@ def test_turn_on_lights_light_group_is_not_turned_on_when_on(activity_based_ligh
 
 
 def test_turn_on_lights_when_time_dependend_control_is_deactivated(activity_based_light_switch, given_that, assert_that):
-    given_that.passed_arg('light_sensor_control').is_set_to(
-        {'light_sensor': 'sensor.some_light_sensor',
-         'light_intensity_toggle_threshold': 'input_number.some_threshold'})
+    given_that.passed_arg('threshold_control').is_set_to(
+        {'sensor': 'sensor.some_light_sensor',
+         'threshold': 'input_number.some_threshold'})
     given_that.passed_arg('time_based_scene_mode').is_set_to(
         {'constrain_input_boolean': 'input_boolean.bedroom_automatic_scene_mode_enabled',
          'scene_input_select': 'input_select.some_scene_input_select',
@@ -103,9 +139,9 @@ def test_turn_on_lights_when_time_dependend_control_is_deactivated(activity_base
 
 
 def test_turn_on_lights_when_there_is_movement_and_insufficient_lights(activity_based_light_switch, given_that, assert_that):
-    given_that.passed_arg('light_sensor_control').is_set_to(
-        {'light_sensor': 'sensor.some_light_sensor',
-         'light_intensity_toggle_threshold': 'input_number.some_threshold'})
+    given_that.passed_arg('threshold_control').is_set_to(
+        {'sensor': 'sensor.some_light_sensor',
+         'threshold': 'input_number.some_threshold'})
     given_that.passed_arg('time_based_scene_mode').is_set_to(
         {'constrain_input_boolean': 'input_boolean.bedroom_automatic_scene_mode_enabled',
          'scene_input_select': 'input_select.some_scene_input_select',
@@ -131,9 +167,9 @@ def assert_scene_was_turned_on(turn_on_lights, assert_that):
 
 
 def test_turn_on_lights_when_there_is_movement_and_insufficient_lights_scene_mode_disabled(activity_based_light_switch, given_that, assert_that):
-    given_that.passed_arg('light_sensor_control').is_set_to(
-        {'light_sensor': 'sensor.some_light_sensor',
-         'light_intensity_toggle_threshold': 'input_number.some_threshold'})
+    given_that.passed_arg('threshold_control').is_set_to(
+        {'sensor': 'sensor.some_light_sensor',
+         'threshold': 'input_number.some_threshold'})
     given_that.passed_arg('time_based_scene_mode').is_set_to(
         {'constrain_input_boolean': 'input_boolean.bedroom_automatic_scene_mode_enabled',
          'scene_input_select': 'input_select.some_scene_input_select',
@@ -153,9 +189,9 @@ def test_turn_on_lights_when_there_is_movement_and_insufficient_lights_scene_mod
 
 
 def test_turn_on_lights_when_there_is_movement_and_sufficient_lights(activity_based_light_switch, given_that, assert_that):
-    given_that.passed_arg('light_sensor_control').is_set_to(
-        {'light_sensor': 'sensor.some_light_sensor',
-         'light_intensity_toggle_threshold': 'input_number.some_threshold'})
+    given_that.passed_arg('threshold_control').is_set_to(
+        {'sensor': 'sensor.some_light_sensor',
+         'threshold': 'input_number.some_threshold'})
 
     given_that.state_of('light.some_light_group').is_set_to('off')
     mock_light_sensor_and_threshold_state(
@@ -168,9 +204,9 @@ def test_turn_on_lights_when_there_is_movement_and_sufficient_lights(activity_ba
 
 
 def test_turn_on_lights_when_there_is_movement_and_sufficient_lights_sensor_state_equals_intensity(activity_based_light_switch, given_that, assert_that):
-    given_that.passed_arg('light_sensor_control').is_set_to(
-        {'light_sensor': 'sensor.some_light_sensor',
-         'light_intensity_toggle_threshold': 'input_number.some_threshold'})
+    given_that.passed_arg('threshold_control').is_set_to(
+        {'sensor': 'sensor.some_light_sensor',
+         'threshold': 'input_number.some_threshold'})
     given_that.state_of('input_boolean.bedroom_automatic_scene_mode_enabled') \
         .is_set_to('off')
     given_that.state_of('light.some_light_group').is_set_to('off')
@@ -200,14 +236,13 @@ def test_turn_on_lights_when_there_is_movement_and_insufficient_lights_but_alrea
 
 
 def test_turn_on_lights_when_there_is_movement_and_insufficient_but_time_span_not_met(activity_based_light_switch, given_that, assert_that):
-    given_that.passed_arg('enable_time_depended_automation_input') \
-        .is_set_to('input_boolean.some_enable_time_automatic_switch')
+    given_that.passed_arg('time_depended_control').is_set_to(
+        {'enable_time_depended_automation_input': 'input_boolean.some_enable_time_automatic_switch',
+         'automation_start_time': 'input_datetime.light_automation_start',
+         'automation_end_time': 'input_datetime.light_automation_end'})
+
     given_that.state_of('input_boolean.some_enable_time_automatic_switch') \
         .is_set_to('on')
-    given_that.passed_arg('light_automation_start_time') \
-        .is_set_to('input_datetime.light_automation_start')
-    given_that.passed_arg('light_automation_end_time') \
-        .is_set_to('input_datetime.light_automation_end')
     given_that.state_of('input_datetime.light_automation_start') \
         .is_set_to('09:00:00')
     given_that.state_of('input_datetime.light_automation_end') \

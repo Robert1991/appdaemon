@@ -17,7 +17,7 @@ class TurnOffAutomation(hass.Hass):
         self.log("Starting turn off timer for %s",
                  self.args["entity"], level="DEBUG")
         self.cancel_timer_if_running()
-        timeout = int(float(self.get_state(self.args["turn_off_timeout"])))
+        timeout = self.calculate_timeout()
         self.current_timer = self.run_in(
             self.turn_off_entity, int(timeout))
 
@@ -31,6 +31,17 @@ class TurnOffAutomation(hass.Hass):
         self.turn_off(entity)
         self.fire_event("TURN_OFF", entity=entity)
         self.current_timer = None
+
+    def calculate_timeout(self):
+        unit = self.get_state(
+            self.args["turn_off_timeout"], attribute="unit_of_measurement")
+        timeout = int(float(self.get_state(self.args["turn_off_timeout"])))
+        if unit and unit != "s":
+            if unit == "min":
+                return timeout * 60
+            if unit == "h":
+                return timeout * 60 * 60
+        return timeout
 
     def cancel_timer_if_running(self):
         if self.current_timer:
@@ -54,26 +65,18 @@ class ActivityBasedEntityControl(TurnOffAutomation):
                           self.args["observed_activity_sensor"], new="off")
 
     def turn_on_event(self, entity, attribute, old, new, kwargs):
+        # self.log(self.get_state(
+        #     self.args["turn_off_timeout"], attribute="unit_of_measurement"))
         if self.read_state_from_input_arg("entity") == "on":
             return False
 
-        if self.light_needs_to_be_turned_on():
-            if "light_sensor_control" in self.args:
-                light_sensor_state = self.hass_utils.read_state_as_float(
-                    self.args["light_sensor_control"]["light_sensor"])
-                light_threshold = self.hass_utils.read_state_as_float(
-                    self.args["light_sensor_control"]["light_intensity_toggle_threshold"])
-                if light_sensor_state <= light_threshold:
-                    self.turn_on_light_group()
-                    return True
-                return False
-            else:
-                self.turn_on_light_group()
-                return True
+        if self.entity_needs_to_be_turned_on():
+            self.turn_on_entity()
+            return True
         return False
 
-    def turn_on_light_group(self):
-        self.log("Turning on light", level="DEBUG")
+    def turn_on_entity(self):
+        self.log("Turning on entity " + self.args["entity"], level="DEBUG")
         if "time_based_scene_mode" in self.args:
             time_based_scene_mode_enabled = self.get_state(
                 self.args["time_based_scene_mode"]["constrain_input_boolean"])
@@ -82,22 +85,39 @@ class ActivityBasedEntityControl(TurnOffAutomation):
                 return
         self.turn_on(self.args["entity"])
 
-    def light_needs_to_be_turned_on(self):
-        automation_start_time = self.read_state_from_input_arg(
-            "light_automation_start_time")
-        automation_end_time = self.read_state_from_input_arg(
-            "light_automation_end_time")
-        time_dependend_control_disabled = self.read_state_from_input_arg(
-            'enable_time_depended_automation_input') == 'off'
-        if automation_start_time and automation_end_time:
-            return self.now_is_between(automation_start_time, automation_end_time) or time_dependend_control_disabled
-        return True
+    def entity_needs_to_be_turned_on(self):
+        if self.check_time_depended_control() and self.check_light_intensity_control():
+            return True
+        return False
 
     def turn_on_scene(self):
         self.log("Turning on scene", level="DEBUG")
         self.scene_utils.turn_on_current_scene(
             self.args["time_based_scene_mode"]["scene_group_prefix"],
             self.args["time_based_scene_mode"]["scene_input_select"])
+
+    def check_time_depended_control(self):
+        if "time_depended_control" in self.args:
+            automation_start_time = self.get_state(
+                self.args["time_depended_control"]["automation_start_time"])
+            automation_end_time = self.get_state(
+                self.args["time_depended_control"]["automation_end_time"])
+            time_dependend_control_disabled = self.get_state(
+                self.args["time_depended_control"]["enable_time_depended_automation_input"]) == 'off'
+            if automation_start_time and automation_end_time:
+                return self.now_is_between(automation_start_time, automation_end_time) or time_dependend_control_disabled
+        return True
+
+    def check_light_intensity_control(self):
+        if "threshold_control" in self.args:
+            light_sensor_state = self.hass_utils.read_state_as_float(
+                self.args["threshold_control"]["sensor"])
+            light_threshold = self.hass_utils.read_state_as_float(
+                self.args["threshold_control"]["threshold"])
+            if light_sensor_state <= light_threshold:
+                return True
+            return False
+        return True
 
     def read_state_from_input_arg(self, input_arg):
         if input_arg in self.args:
